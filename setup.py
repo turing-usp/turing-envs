@@ -6,10 +6,10 @@ setuptools.setup(
     author="Grupo Turing",
     author_email="turing.usp@gmail.com",
     description="Ambientes do gym desenvolvidos pelo Grupo Turing",
-    url="https://github.com/GrupoTuringCodes/chrome-trex-rush",
+    url="https://github.com/GrupoTuring/turing_envs",
     project_urls={
-        'Source': 'https://github.com/GrupoTuring/turing-envs',
-        'Tracker': 'https://github.com/GrupoTuring/turing-envs/issues',
+        'Source': 'https://github.com/GrupoTuring/turing_envs',
+        'Tracker': 'https://github.com/GrupoTuring/turing_envs/issues',
     },
     license="MIT",
     packages=['turing_envs'],

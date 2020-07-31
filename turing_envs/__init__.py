@@ -1,16 +1,18 @@
 import os
-from gym.envs.registration import register
-
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 
+from .pong import PongEnv, EasyPongEnv
+from gym.envs.registration import register
+
+
 register(
-    id='turing-normal-v0',
-    entry_point='pong.objects:PongEnv',
+    id='pong-normal-v0',
+    entry_point='turing_envs.pong:PongEnv',
     max_episode_steps=7_500,
 )
 
 register(
-    id='turing-easy-v0',
-    entry_point='pong.objects:EasyPongEnv',
+    id='pong-easy-v0',
+    entry_point='turing_envs.pong:EasyPongEnv',
     max_episode_steps=7_500,
 )
