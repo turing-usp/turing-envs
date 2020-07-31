@@ -157,7 +157,7 @@ class PongEnv(gym.Env):
         if (self.ball.size + 3) < self.ball.x < self.WIDTH - (3 + self.ball.size):
             reward = 0
         else:
-            player_scored = self.ball.x > 4
+            player_scored = self.ball.x > self.ball.size + 3
             self.score[0 if player_scored else 1] += 1
             mul = 1 if player_scored else -1
             reward = 500 * mul
