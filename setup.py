@@ -1,15 +1,15 @@
 import setuptools
 
 setuptools.setup(
-    name="turing_envs",
+    name="turing-envs",
     version="0.0.1",
     author="Grupo Turing",
     author_email="turing.usp@gmail.com",
     description="Ambientes do gym desenvolvidos pelo Grupo Turing",
-    url="https://github.com/GrupoTuring/turing_envs",
+    url="https://github.com/GrupoTuring/turing-envs",
     project_urls={
-        'Source': 'https://github.com/GrupoTuring/turing_envs',
-        'Tracker': 'https://github.com/GrupoTuring/turing_envs/issues',
+        'Source': 'https://github.com/GrupoTuring/turing-envs',
+        'Tracker': 'https://github.com/GrupoTuring/turing-envs/issues',
     },
     license="MIT",
     packages=['turing_envs'],
