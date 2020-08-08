@@ -1,5 +1,6 @@
+import sys
 import numpy as np
-import pygame
+from .import_fix import pygame
 import gym
 from gym.utils import seeding
 
@@ -90,7 +91,7 @@ class Ball:
 
 class PongEnv(gym.Env):
     _gym_disable_underscore_compat = True
-    metadata = {'render.modes': ['human']}
+    metadata = {'render.modes': ['human', 'rgb_array']}
     reward_range = (-float('inf'), float('inf'))
     action_space = gym.spaces.Discrete(3)
     observation_space = gym.spaces.Box(
@@ -107,7 +108,6 @@ class PongEnv(gym.Env):
 
         self.height = height
         self.width = width
-        self.rendered = False
         self.num_matches = num_matches
         self.fps = fps
         self.clock = pygame.time.Clock()
@@ -141,6 +141,8 @@ class PongEnv(gym.Env):
                          velocity=ball_velocity)
 
         self.seed()
+        self.viewer = None
+        self.screen = None
 
     def reset_match(self):
         self.ball.x, self.ball.y = self.width/2, self.height/2
@@ -193,28 +195,40 @@ class PongEnv(gym.Env):
         self.reset_match()
         return reward if player_scored else -reward
 
-    def render(self, mode='human', wait=True):
-        if mode != 'human':
-            return super().render(mode=mode)
-
-        if not self.rendered:
-            self.screen = pygame.display.set_mode((self.width, self.height))
-            self.rendered = True
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.done = True
+    def draw(self):
+        if self.screen is None:
+            self.screen = pygame.Surface((self.width, self.height))
         self.screen.fill((20, 20, 20))
         for bar in self.bars:
             bar.draw(self.screen)
         self.ball.draw(self.screen)
-        pygame.display.set_caption(f'Pong - {self.score[0]} x {self.score[1]}')
-        pygame.display.update()
+
+    def render(self, mode='human', wait=True):
         if wait:
             self.clock.tick(self.fps)
 
+        self.draw()
+        img = pygame.surfarray.array3d(self.screen).astype(np.uint8)
+
+        # Conversão de eixos [y][x][canal] para [x][y][canal]
+        img = np.transpose(img, [1, 0, 2])
+
+        if mode == 'rgb_array':
+            return img
+        elif mode == 'human':
+            if self.viewer is None:
+                from gym.envs.classic_control import rendering
+                self.viewer = rendering.SimpleImageViewer(maxwidth=self.width)
+            self.viewer.imshow(img)
+            self.viewer.window.set_caption(
+                f'Pong - {self.score[0]} x {self.score[1]} ({sys.argv[0]})')
+        else:
+            return super().render(mode=mode)
+
     def close(self):
-        # TODO: verificar isso
-        pygame.display.iconify()
+        if self.viewer:
+            self.viewer.close()
+            self.viewer = None
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
