@@ -4,13 +4,13 @@ import gym
 
 
 class Bar:
-    def __init__(self, x, y, screen_width, screen_height, length=20, width=2, velocity=2, orientation=1):
+    def __init__(self, x, y, screen_width, screen_height, length=20, width=2, velocity=2, horizontal=True):
         self.x = int(x)
         self.y = int(y)
         self.length = length
         self.width = width
         self.velocity = velocity
-        self.orientation = orientation  # 1 para horizontal, 0 para vertical
+        self.horizontal = horizontal
         self.screen_width = screen_width
         self.screen_height = screen_height
         self._direction = 0
@@ -75,11 +75,11 @@ class Ball:
                         self.x - self.size, self.y - self.size, 2*self.size, 2*self.size))
 
     def bounce(self, wall):
-        lookup_table = {0: [-1, 1],
-                        1: [1, -1]}
+        lookup_table = {False: [-1, 1],
+                        True: [1, -1]}
         if abs(self.x - wall.x) < (wall.width/2 + self.size - 1) and abs(self.y - wall.y) < (wall.length/2 + self.size):
-            self.velocity[0] *= lookup_table[wall.orientation][0]
-            self.velocity[1] *= lookup_table[wall.orientation][1]
+            self.velocity[0] *= lookup_table[wall.horizontal][0]
+            self.velocity[1] *= lookup_table[wall.horizontal][1]
 
 
 class PongEnv(gym.Env):
@@ -89,39 +89,47 @@ class PongEnv(gym.Env):
     observation_space = gym.spaces.Box(
         low=-np.float32('inf'), high=np.float32('inf'), shape=(4,))
 
-    def __init__(self, HEIGHT=300, WIDTH=400, repeat_actions=3,
+    def __init__(self, height=300, width=400, repeat_actions=3,
                  bar_velocity=3, ball_velocity=2,
                  num_matches=7, fps=50):
-        # x, y, length, width, velocity, orientation
-        bar_parameters = [(15,        HEIGHT/2, 100,    8,     bar_velocity, 0),
-                          (WIDTH-15,  HEIGHT/2, 100,    8,     bar_velocity, 0),
-                          (WIDTH/2,   0,        5,      WIDTH, 0,            1),
-                          (WIDTH / 2, HEIGHT,   5,      WIDTH, 0,            1),
-                          (0,         HEIGHT/2, HEIGHT, 5,     0,            0),
-                          (WIDTH,     HEIGHT/2, HEIGHT, 5,     0,            0)]
 
-        self.HEIGHT = HEIGHT
-        self.WIDTH = WIDTH
+        self.height = height
+        self.width = width
         self.rendered = False
         self.num_matches = num_matches
         self.fps = fps
         self.clock = pygame.time.Clock()
         self.repeat_actions = repeat_actions
 
+        param_names = ['x', 'y', 'length', 'width', 'velocity', 'horizontal']
+        w, h, vel = width, height, bar_velocity
+        bar_parameters = [
+            # (x,    y,   len, width, vel, horizontal)
+            (w/27,   h/2, h/3, w/50, vel, False),  # jogador
+            (w-w/27, h/2, h/3, w/50, vel, False),  # oponente
+            (w/2,    0,   5,   w,    0,   True),   # teto
+            (w/2,    h,   5,   w,    0,   True),   # chão
+            (0,      h/2, h,   5,    0,   False),  # parede esq.
+            (w,      h/2, h,   5,    0,   False),  # parede dir.
+        ]
+        # Obs: as paredes esquerda e direita têm propósito puramente estético
+
         self.bars = []
-        for x, y, length, width, velocity, orientation in bar_parameters:
-            self.bars.append(Bar(x, y, WIDTH, HEIGHT, length,
-                                 width, velocity, orientation))
+        for bar in bar_parameters:
+            kwargs = dict(zip(param_names, bar))
+            self.bars.append(
+                Bar(screen_width=width, screen_height=height, **kwargs))
+
         self.control_bar = self.bars[0]
         self.other_bar = self.bars[1]
 
         # x inicial; y inicial; raio
-        self.ball = Ball(WIDTH/2, HEIGHT/2, 10, ball_velocity)
+        self.ball = Ball(width/2, height/2, 10, ball_velocity)
 
     def reset_match(self):
-        self.ball.x, self.ball.y = self.WIDTH/2, self.HEIGHT/2
-        self.control_bar.x, self.control_bar.y = 15, self.HEIGHT/2
-        self.other_bar.x, self.other_bar.y = self.WIDTH - 15, self.HEIGHT/2
+        self.ball.x, self.ball.y = self.width/2, self.height/2
+        self.control_bar.y = self.height/2
+        self.other_bar.y = self.height/2
         self.ball.reset_velocity()
 
     def _get_state(self):
@@ -135,13 +143,12 @@ class PongEnv(gym.Env):
         return self._get_state()
 
     def step(self, action):
-        total_reward = 0
+        reward = 0
         for _ in range(self.repeat_actions):
-            state, reward, done, info = self._step(action)
-            total_reward += reward
-            if done:
+            reward += self._step(action)
+            if self.done:
                 break
-        return state, total_reward, done, info
+        return self._get_state(), reward, self.done, {}
 
     def _step(self, action):
         if self.done:
@@ -166,14 +173,14 @@ class PongEnv(gym.Env):
                 reward += 2000 * mul
             self.reset_match()
 
-        return (self._get_state(), reward, self.done, {})
+        return reward
 
     def render(self, mode='human', wait=True):
         if mode != 'human':
             return super().render(mode=mode)
 
         if not self.rendered:
-            self.screen = pygame.display.set_mode((self.WIDTH, self.HEIGHT))
+            self.screen = pygame.display.set_mode((self.width, self.height))
             self.rendered = True
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
