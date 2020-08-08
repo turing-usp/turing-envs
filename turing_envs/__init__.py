@@ -1,6 +1,3 @@
-import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
-
 from .pong import PongEnv, EasyPongEnv
 from gym.envs.registration import register
 
