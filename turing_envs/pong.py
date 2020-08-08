@@ -85,6 +85,7 @@ class Ball:
 
 
 class PongEnv(gym.Env):
+    _gym_disable_underscore_compat = True
     metadata = {'render.modes': ['human']}
     reward_range = (-float('inf'), float('inf'))
     action_space = gym.spaces.Discrete(3)
