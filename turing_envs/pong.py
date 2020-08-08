@@ -72,7 +72,7 @@ class Ball:
 
     def draw(self, screen, color=(255, 255, 255)):
         pygame.draw.rect(screen, color, (
-                        self.x - self.size, self.y - self.size, 2*self.size, 2*self.size))
+            self.x - self.size, self.y - self.size, 2*self.size, 2*self.size))
 
     def bounce(self, wall):
         lookup_table = {False: [-1, 1],
@@ -80,6 +80,8 @@ class Ball:
         if abs(self.x - wall.x) < (wall.width/2 + self.size - 1) and abs(self.y - wall.y) < (wall.length/2 + self.size):
             self.velocity[0] *= lookup_table[wall.horizontal][0]
             self.velocity[1] *= lookup_table[wall.horizontal][1]
+            return True
+        return False
 
 
 class PongEnv(gym.Env):
@@ -126,6 +128,8 @@ class PongEnv(gym.Env):
 
         self.control_bar = self.bars[0]
         self.other_bar = self.bars[1]
+        self.left_wall = self.bars[4]
+        self.right_wall = self.bars[5]
 
         # x inicial; y inicial; raio
         self.ball = Ball(width/2, height/2, 10, ball_velocity)
@@ -165,19 +169,21 @@ class PongEnv(gym.Env):
         for bar in self.bars:
             self.ball.bounce(bar)
 
-        if (self.ball.size + 3) < self.ball.x < self.WIDTH - (3 + self.ball.size):
-            reward = 0
-        else:
-            player_scored = self.ball.x > self.ball.size + 3
-            self.score[0 if player_scored else 1] += 1
-            mul = 1 if player_scored else -1
-            reward = 500 * mul
-            if max(self.score) >= self.num_matches / 2:
-                self.done = True
-                reward += 2000 * mul
-            self.reset_match()
+        if self.ball.bounce(self.left_wall):
+            player_scored = False
+            self.score[1] += 1
+        elif self.ball.bounce(self.right_wall):
+            player_scored = True
+            self.score[0] += 1
+        else:  # no points
+            return 0
 
-        return reward
+        reward = 500
+        if max(self.score) > self.num_matches / 2:
+            self.done = True
+            reward += 2000
+        self.reset_match()
+        return reward if player_scored else -reward
 
     def render(self, mode='human', wait=True):
         if mode != 'human':
