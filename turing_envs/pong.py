@@ -22,33 +22,32 @@ class Bar:
         pygame.draw.rect(screen, color, (
                          self.x-self.width/2, self.y-self.length/2, self.width, self.length))
 
-    # mode = (human, machine, enemy); move = (0,1,2)
-    def move(self, mode='human', move=None, ball=None):
-        lookup_table = {pygame.K_s: lambda x: x + self.velocity,
-                        1: lambda x: x + self.velocity,  # movimentamos a barra verticalmente
-                        pygame.K_w: lambda x: x - self.velocity,
-                        2: lambda x: x - self.velocity}  # conforme a tabela indica
-
-        # modos de movimento: o mode 'human' serve para o controle manual,
-        # 'machine' diz respeito ao environment e o 'enemy' serve para controlar
-        # a barra inimiga
-        if mode == 'human':
-            pressed = pygame.key.get_pressed()
-            for k in lookup_table.keys():  # verificamos se a tecla foi apertada
-                if pressed[k]:
-                    self.y = lookup_table[k](self.y)
-
-        elif mode == 'machine':
-            if move != 0:
-                self.y = lookup_table[move](self.y)
+    # mode = machine | enemy
+    # arg  = action  | ball
+    def move(self, arg,  mode='human'):
+        if mode == 'machine':
+            actions = {
+                0: lambda x: x,
+                1: lambda x: x + self.velocity,
+                2: lambda x: x - self.velocity,
+            }
+            self.y = actions[arg](self.y)
 
         elif mode == 'enemy':
+            ball = arg
+            # Depois de começar a se movimentar, o inimigo demora um tempo
+            # para verificar novamente a posição da bola
             if self._direction != 0:
                 if self.np_random.random() < .08:
                     self._direction = 0
+            # O inimigo só consegue "ver" a bola quando ela está próxima,
+            # e tem um tempo de resposta aleatório
             elif ball.x >= self.screen_width*.6 and self.np_random.random() < .85:
                 self._direction = np.sign(ball.y - self.y)
             self.y += self.velocity*self._direction
+
+        else:
+            raise ValueError(f'Invalid mode: {mode}')
 
         self.y = np.clip(self.y, 0, self.screen_height)
 
@@ -171,8 +170,8 @@ class PongEnv(gym.Env):
         if self.done:
             return
 
-        self.control_bar.move(mode='machine', move=action)
-        self.other_bar.move(mode='enemy', ball=self.ball)
+        self.control_bar.move(action, mode='machine')
+        self.other_bar.move(self.ball, mode='enemy')
         self.ball.move()
 
         for bar in self.bars:
