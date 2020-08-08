@@ -44,7 +44,7 @@ class Bar:
                 if np.random.random() < .08:
                     self._direction = 0
             elif ball.x >= self.screen_width*.6 and np.random.random() < .85:
-                self._direction = ((ball.y - self.y)/abs(ball.y - self.y))
+                self._direction = np.sign(ball.y - self.y)
             self.y += self.velocity*self._direction
 
         self.y = np.clip(self.y, 0, self.screen_height)
