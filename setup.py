@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="turing-envs",
-    version="0.0.1",
+    version="0.1.0",
     author="Grupo Turing",
     author_email="turing.usp@gmail.com",
     description="Ambientes do gym desenvolvidos pelo Grupo Turing",
