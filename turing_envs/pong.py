@@ -1,10 +1,13 @@
 import numpy as np
 import pygame
 import gym
+from gym.utils import seeding
 
 
 class Bar:
-    def __init__(self, x, y, screen_width, screen_height, length=20, width=2, velocity=2, horizontal=True):
+    def __init__(self, x, y, screen_width, screen_height,
+                 length=20, width=2, velocity=2, horizontal=True, np_random=np.random):
+        self.np_random = np_random
         self.x = int(x)
         self.y = int(y)
         self.length = length
@@ -41,9 +44,9 @@ class Bar:
 
         elif mode == 'enemy':
             if self._direction != 0:
-                if np.random.random() < .08:
+                if self.np_random.random() < .08:
                     self._direction = 0
-            elif ball.x >= self.screen_width*.6 and np.random.random() < .85:
+            elif ball.x >= self.screen_width*.6 and self.np_random.random() < .85:
                 self._direction = np.sign(ball.y - self.y)
             self.y += self.velocity*self._direction
 
@@ -51,7 +54,8 @@ class Bar:
 
 
 class Ball:
-    def __init__(self, x, y, size, velocity=1):
+    def __init__(self, x, y, size, velocity=1, np_random=np.random):
+        self.np_random = np_random
         self.x = int(x)
         self.y = int(y)
         self.size = size
@@ -60,9 +64,9 @@ class Ball:
 
     def reset_velocity(self):
         v = self.abs_velocity
-        direction = np.random.uniform(np.pi/8, np.pi/3)  # first quadrant
-        direction *= np.random.choice([-1, 1])  # right side
-        direction += np.random.choice([0, np.pi])  # left side
+        direction = self.np_random.uniform(np.pi/8, np.pi/3)  # first quadrant
+        direction *= self.np_random.choice([-1, 1])  # right side
+        direction += self.np_random.choice([0, np.pi])  # left side
         self.velocity = [
             v*np.cos(direction), -v*np.sin(direction)]
 
@@ -77,7 +81,8 @@ class Ball:
     def bounce(self, wall):
         lookup_table = {False: [-1, 1],
                         True: [1, -1]}
-        if abs(self.x - wall.x) < (wall.width/2 + self.size - 1) and abs(self.y - wall.y) < (wall.length/2 + self.size):
+        if abs(self.x - wall.x) < (wall.width/2 + self.size - 1) \
+                and abs(self.y - wall.y) < (wall.length/2 + self.size):
             self.velocity[0] *= lookup_table[wall.horizontal][0]
             self.velocity[1] *= lookup_table[wall.horizontal][1]
             return True
@@ -95,6 +100,7 @@ class PongEnv(gym.Env):
     def __init__(self, height=300, width=400, repeat_actions=3,
                  bar_velocity=3, ball_velocity=2,
                  num_matches=7, fps=50):
+
         self.observation_space = gym.spaces.Box(
             low=np.array([0, 0, 0, 0]),
             high=np.array([width, height, width, height]),
@@ -132,8 +138,10 @@ class PongEnv(gym.Env):
         self.left_wall = self.bars[4]
         self.right_wall = self.bars[5]
 
-        # x inicial; y inicial; raio
-        self.ball = Ball(width/2, height/2, 10, ball_velocity)
+        self.ball = Ball(x=width/2, y=height/2, size=10,
+                         velocity=ball_velocity)
+
+        self.seed()
 
     def reset_match(self):
         self.ball.x, self.ball.y = self.width/2, self.height/2
@@ -208,6 +216,13 @@ class PongEnv(gym.Env):
     def close(self):
         # TODO: verificar isso
         pygame.display.iconify()
+
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        self.ball.np_random = self.np_random
+        for bar in self.bars:
+            bar.np_random = self.np_random
+        return [seed]
 
 
 class EasyPongEnv(PongEnv):
