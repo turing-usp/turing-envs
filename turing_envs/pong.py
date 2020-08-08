@@ -92,6 +92,10 @@ class PongEnv(gym.Env):
     def __init__(self, height=300, width=400, repeat_actions=3,
                  bar_velocity=3, ball_velocity=2,
                  num_matches=7, fps=50):
+        self.observation_space = gym.spaces.Box(
+            low=np.array([0, 0, 0, 0]),
+            high=np.array([width, height, width, height]),
+            dtype=np.float32)
 
         self.height = height
         self.width = width
@@ -206,7 +210,14 @@ class EasyPongEnv(PongEnv):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        low = self.observation_space.low
+        high = self.observation_space.high
+        self.observation_space = gym.spaces.Box(
+            low=np.array([low[0] - high[2], low[1] - high[3]]),
+            high=np.array([high[0] - low[2], high[1] - low[3]]),
+            dtype=np.float32)
+
     def _get_state(self):
-        dx = self.control_bar.x - self.ball.x
-        dy = self.control_bar.y - self.ball.y
+        dx = self.control_bar.x - self.ball.x  # s[0] - s[2]
+        dy = self.control_bar.y - self.ball.y  # s[1] - s[3]
         return np.array([dx, dy])
