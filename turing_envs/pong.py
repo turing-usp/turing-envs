@@ -170,7 +170,7 @@ class PongEnv(gym.Env):
 
     def _step(self, action):
         if self.done:
-            return
+            return 0
 
         self.control_bar.move(action, mode='machine')
         self.other_bar.move(self.ball, mode='enemy')
